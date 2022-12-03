@@ -1,0 +1,26 @@
+name = "machina"
+version = "0.1.0"
+license = "license"
+author = "St Maxwell"
+maintainer = "st_maxwell@outlook.com"
+copyright = "Copyright 2022, St Maxwell"
+
+[[example]]
+name = "vla"
+source-dir = "example/vla"
+main = "main.f90"
+
+[[example]]
+name = "map"
+source-dir = "example/map"
+main = "main.f90"
+
+[install]
+library = true
+
+[preprocess.cpp]
+suffixes = ["F90", "f90"]
+macros = ["DEBUG"]
+
+[dev-dependencies]
+test-drive.git = "https://github.com/fortran-lang/test-drive.git"
