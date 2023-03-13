@@ -2,7 +2,6 @@ program main
     use machina_map
     use machina_vla
     use machina_basic
-    use machina_core
     use machina_error
     implicit none
     type(map_t) :: dict

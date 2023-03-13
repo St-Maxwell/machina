@@ -1,6 +1,7 @@
 module machina_string_utils
     use machina_basic
     use machina_string_ascii
+    use machina_error
     implicit none
 
 contains
@@ -18,6 +19,8 @@ contains
 
     end subroutine replace
 
+    !> split the string based on seperator characters
+    !> the default seperator is " "
     subroutine tokenize(string, tokens, sep)
         use machina_vla, only: vla_char
         character(len=*), intent(in) :: string
@@ -172,5 +175,71 @@ contains
         is_all_digit = .true.
 
     end function is_all_digit
+
+    subroutine read_whole_file(file, string, error)
+        character(len=*), intent(in) :: file
+        character(len=:), allocatable, intent(out) :: string
+        type(error_t), intent(out) :: error
+        character(len=:), allocatable :: line
+        integer :: u, length, istat
+
+        open (newunit=u, file=file, action="read", status="old", iostat=istat)
+
+        if (istat /= 0) then
+            call raise_error(error, "Unable to open the file """//trim(file)//"""")
+            return
+        end if
+
+        string = ""
+        do while (istat == 0)
+            call getline(u, line, istat)
+            if (istat == 0) string = string//line//LF
+        end do
+
+        if (is_iostat_end(istat)) istat = 0
+        if (istat /= 0) then
+            call raise_error(error, "Could not read the file """//trim(file)//"""")
+            close (u)
+            return
+        end if
+
+        close (u)
+
+    end subroutine read_whole_file
+
+    subroutine getline(unit, line, iostat)
+        !> Formatted IO unit
+        integer, intent(in) :: unit
+        !> Line to read
+        character(len=:), allocatable, intent(out) :: line
+        !> Status of operation
+        integer, intent(out) :: iostat
+
+        integer, parameter :: bufsize = 4096
+        character(len=bufsize) :: buffer
+        integer :: chunk, stat
+        logical :: opened
+
+        if (unit /= -1) then
+            inquire (unit=unit, opened=opened)
+        else
+            opened = .false.
+        end if
+
+        if (opened) then
+            open (unit=unit, pad="yes", iostat=iostat)
+        else
+            iostat = 1
+        end if
+
+        line = ""
+        do while (iostat == 0)
+            read (unit, '(a)', advance='no', iostat=iostat, size=chunk) buffer
+            if (iostat > 0) exit
+            line = line//buffer(:chunk)
+        end do
+        if (is_iostat_eor(iostat)) iostat = 0
+
+    end subroutine getline
 
 end module machina_string_utils

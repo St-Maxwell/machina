@@ -1,12 +1,31 @@
 module machina_map
     use machina_basic, only: i4, f8
-    use machina_core
-    use machina_vla
+    use machina_value_base, only: machina_value
+    use machina_value_scalar !> import all
+    use machina_tree !> import all
+    use machina_vla !> import all
     use machina_error
     implicit none
     private
     public :: map_t, map_iterator
+    public :: machina_value, int_value, real_value, cmplx_value, bool_value, char_value
+    public :: construct_scalar
+    public :: cast_to_int, cast_to_real, cast_to_cmplx, cast_to_bool, cast_to_char
 
+    !> an ordered key-value pairs container
+    !> the implementation is based on AVL tree
+    !> supported type of key: character(len=*)
+    !> supported types of value:
+    !>   * integer(kind=int32)
+    !>   * real(kind=real64)
+    !>   * complex(kind=real64)
+    !>   * logical
+    !>   * character(len=*)
+    !>   * type(vla_int)
+    !>   * type(vla_real)
+    !>   * type(vla_cmplx)
+    !>   * type(vla_bool)
+    !>   * type(vla_char)
     type :: map_t
         private
         type(machina_tree_node), allocatable :: root
@@ -36,6 +55,7 @@ module machina_map
         procedure :: remove
         procedure :: has_key
         procedure :: iterator => construct_map_iterator
+        procedure :: clear
     end type
 
     !> auxiliary type for representing the stack of tree_node
@@ -204,7 +224,7 @@ contains
             return
         end if
 
-        call raise_error(error, """"//trim(adjustl(key))//""" not found")
+        call raise_error(error, not_found_error(trim(adjustl(key))))
 
     end subroutine get_int
 
@@ -228,7 +248,7 @@ contains
             return
         end if
 
-        call raise_error(error, """"//trim(adjustl(key))//""" not found")
+        call raise_error(error, not_found_error(trim(adjustl(key))))
 
     end subroutine get_real
 
@@ -252,7 +272,7 @@ contains
             return
         end if
 
-        call raise_error(error, """"//trim(adjustl(key))//""" not found")
+        call raise_error(error, not_found_error(trim(adjustl(key))))
 
     end subroutine get_cmplx
 
@@ -276,7 +296,7 @@ contains
             return
         end if
 
-        call raise_error(error, """"//trim(adjustl(key))//""" not found")
+        call raise_error(error, not_found_error(trim(adjustl(key))))
 
     end subroutine get_bool
 
@@ -300,7 +320,7 @@ contains
             return
         end if
 
-        call raise_error(error, """"//trim(adjustl(key))//""" not found")
+        call raise_error(error, not_found_error(trim(adjustl(key))))
 
     end subroutine get_char
 
@@ -318,7 +338,7 @@ contains
             return
         end if
 
-        call raise_error(error, """"//trim(adjustl(key))//""" not found")
+        call raise_error(error, not_found_error(trim(adjustl(key))))
 
     end subroutine get_vla_int
 
@@ -336,7 +356,7 @@ contains
             return
         end if
 
-        call raise_error(error, """"//trim(adjustl(key))//""" not found")
+        call raise_error(error, not_found_error(trim(adjustl(key))))
 
     end subroutine get_vla_real
 
@@ -354,7 +374,7 @@ contains
             return
         end if
 
-        call raise_error(error, """"//trim(adjustl(key))//""" not found")
+        call raise_error(error, not_found_error(trim(adjustl(key))))
 
     end subroutine get_vla_cmplx
 
@@ -372,7 +392,7 @@ contains
             return
         end if
 
-        call raise_error(error, """"//trim(adjustl(key))//""" not found")
+        call raise_error(error, not_found_error(trim(adjustl(key))))
 
     end subroutine get_vla_bool
 
@@ -390,7 +410,7 @@ contains
             return
         end if
 
-        call raise_error(error, """"//trim(adjustl(key))//""" not found")
+        call raise_error(error, not_found_error(trim(adjustl(key))))
 
     end subroutine get_vla_char
 
@@ -459,5 +479,12 @@ contains
         value => p%val
 
     end subroutine iterator_next_pair
+
+    subroutine clear(this)
+        class(map_t), intent(inout) :: this
+
+        if (allocated(this%root)) deallocate (this%root)
+
+    end subroutine clear
 
 end module machina_map

@@ -3,7 +3,8 @@ module machina_vla_int
     use machina_value_base
     implicit none
     private
-    public :: vla_int, vla_int_iterator, vla_int_const_iterator, size
+    public :: vla_int, vla_int_iterator, vla_int_const_iterator
+    public :: size, copy_to_array
     public :: cast_to_vla_int
 
     integer, parameter :: initial_size = 16
@@ -13,11 +14,12 @@ module machina_vla_int
         integer :: sz = 0
         integer(kind=i4), dimension(:), allocatable :: lst
     contains
-        procedure :: push_back_v, push_back_arr
-        generic :: push_back => push_back_v, push_back_arr
+        procedure :: push_back_v, push_back_arr, push_back_vla
+        generic :: push_back => push_back_v, push_back_arr, push_back_vla
         procedure :: pop
         procedure :: shift
         procedure :: at
+        procedure :: ptr_at
         procedure :: iterator, const_iterator
         procedure :: destroy
     end type
@@ -44,6 +46,10 @@ module machina_vla_int
 
     interface size
         module procedure :: vla_size
+    end interface
+
+    interface copy_to_array
+        module procedure :: copy_to_array_int
     end interface
 
 contains
@@ -88,6 +94,27 @@ contains
 
     end subroutine push_back_arr
 
+    subroutine push_back_vla(this, vla)
+        class(vla_int), intent(inout) :: this
+        type(vla_int), intent(in) :: vla
+        integer :: sz, i
+
+        if (.not. allocated(this%lst)) then
+            call resize(this%lst, initial_size)
+        end if
+
+        sz = size(this%lst)
+        if (this%sz + size(vla) >= sz) then
+            call resize(this%lst, sz + sz/2 + size(vla))
+        end if
+
+        do i = 1, size(vla)
+            this%lst(i + this%sz) = vla%ptr_at(i)
+        end do
+        this%sz = this%sz + size(vla)
+
+    end subroutine push_back_vla
+
     subroutine pop(this, v)
         class(vla_int), intent(inout) :: this
         integer(kind=i4), intent(out) :: v
@@ -119,6 +146,15 @@ contains
 
     end function at
 
+    function ptr_at(this, idx) result(v)
+        class(vla_int), intent(in), target :: this
+        integer, intent(in) :: idx
+        integer(kind=i4), pointer :: v
+
+        v => this%lst(idx)
+
+    end function ptr_at
+
     pure function vla_size(this) result(sz)
         type(vla_int), intent(in) :: this
         integer :: sz
@@ -126,6 +162,18 @@ contains
         sz = this%sz
 
     end function vla_size
+
+    subroutine copy_to_array_int(this, array)
+        type(vla_int), intent(in) :: this
+        integer(kind=i4), dimension(:), allocatable, intent(out) :: array
+        integer :: i
+
+        allocate (array(size(this)))
+        do i = 1, size(this)
+            array(i) = this%ptr_at(i)
+        end do
+
+    end subroutine copy_to_array_int
 
     function iterator(this, reverse) result(it)
         class(vla_int), intent(in), target :: this
